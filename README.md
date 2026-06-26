@@ -134,9 +134,6 @@ The Python analysis included:
 
 ![Teaching Quality Dashboard](images/teaching-quality.png)
 
-### University Full Report
-
-![University Full Report](images/university-full-report.png)
 
 ---
 
