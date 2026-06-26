@@ -116,7 +116,6 @@ The Python analysis included:
 | Student Success        | GPA trends, grade distribution, student performance, and cohort analysis              |
 | Course & Capacity      | Course enrollment, classroom capacity, utilization, and resource planning             |
 | Teaching Quality       | Evaluation scores, response rates, professor-level insights, and teaching performance |
-| University Full Report | Executive-level overview of university performance KPIs                               |
 
 ---
 
