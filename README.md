@@ -36,6 +36,12 @@ I built an end-to-end analytical workflow combining:
 3. **Power BI and DAX** for interactive KPI monitoring and management reporting.
 4. **A normalized data model** connecting academic, operational, and evaluation entities.
 
+## Reproducible Analysis
+
+- [SQL analysis queries](sql/university-analysis-queries.sql) cover enrollment snapshots, capacity utilization, prerequisite compliance, GPA and grade analysis, teaching-evaluation validation, and scheduling conflicts.
+- [Python analysis notebook](notebooks/university-analysis.ipynb) covers ingestion, type enforcement, data-quality tests, feature engineering, visualization, and reconciliation.
+- Notebook outputs are intentionally cleared in the public repository to prevent publication of record-level academic data. Configure `YOUR_SQL_SERVER` and run the notebook locally to reproduce the analysis.
+
 ## Dashboard Pages
 
 ### 1. Student Success
@@ -129,6 +135,10 @@ The [KPI reference](docs/kpi-reference.md) documents the business meaning and va
 ```text
 university-database-analysis-sql-python-powerbi/
 ├── README.md
+├── sql/
+│   └── university-analysis-queries.sql
+├── notebooks/
+│   └── university-analysis.ipynb
 ├── powerbi/
 │   └── university-analysis-dashboard.pbix
 ├── docs/
@@ -146,9 +156,10 @@ university-database-analysis-sql-python-powerbi/
 
 1. Read the executive snapshot and key findings.
 2. Review the three dashboard screenshots.
-3. Open the PDF report for the complete management-facing analysis.
-4. Open the PBIX file in Power BI Desktop for interactive filtering and model inspection.
-5. Review the presentation for a concise stakeholder summary.
+3. Review the SQL queries and reproducible Python notebook.
+4. Open the PDF report for the complete management-facing analysis.
+5. Open the PBIX file in Power BI Desktop for interactive filtering and model inspection.
+6. Review the presentation for a concise stakeholder summary.
 
 ## Validation Note
 
@@ -165,4 +176,4 @@ Data Analyst | Business Intelligence | Energy & Operations Analytics
 
 ## Project Status
 
-Completed. Future improvements include publishing cleaned SQL scripts and a reproducible analysis notebook.
+Completed. The repository includes cleaned SQL queries, a reproducible Python notebook, Power BI report, management report, presentation, data-model documentation, and KPI reference.
