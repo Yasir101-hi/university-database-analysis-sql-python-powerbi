@@ -4,7 +4,7 @@
 
 -- Total students by major, start_year.
 
-SELECT 
+SELECT
     m.name AS major_name,
     s.start_year,
     COUNT(s.student_id) AS total_students
@@ -15,14 +15,14 @@ ORDER BY m.name, s.start_year;
 
 -- Headcount per course_offering vs. capacity; flag over/under utilization..
 
-SELECT 
+SELECT
     co.offering_id,
     c.course_code,
     co.semester,
     co.year,
     co.capacity,
     COUNT(e.student_id) AS enrolled,
-    CASE 
+    CASE
         WHEN COUNT(e.student_id) > co.capacity THEN 'Over-enrolled'
         WHEN COUNT(e.student_id) = 0 THEN 'Empty'
         WHEN COUNT(e.student_id) < 0.5 * co.capacity THEN 'Underutilized'
@@ -36,46 +36,58 @@ ORDER BY co.year DESC, co.semester, c.course_code;
 
 -- 2.Progression & prerequisites
 
--- For courses with prerequisites, list students who enrolled in the child course without 
-    -- previously completing its prereq (grade A–D considered complete).
+-- Snapshot-level prerequisite screen.
+-- All supplied course offerings are Fall 2025, so the data cannot establish
+-- whether a prerequisite was completed in an earlier term. This query flags
+-- child-course enrollments with no passing A-D evidence for the required
+-- prerequisite anywhere in the supplied enrollment snapshot.
 
-SELECT 
-    s.student_id,
-    child.course_code AS child_course,
-    prereq.course_code AS prereq_course
-  
-FROM enrollments e
-JOIN course_offerings co 
-    ON e.offering_id = co.offering_id
-JOIN courses child 
-    ON co.course_id = child.course_id
-JOIN prerequisites p 
-    ON p.course_id = child.course_id
-JOIN courses prereq 
-    ON p.prereq_course_id = prereq.course_id
-JOIN students s 
-    ON e.student_id = s.student_id
-WHERE NOT EXISTS (
-    SELECT 1
-    FROM enrollments e2
-    JOIN course_offerings co2 
-        ON e2.offering_id = co2.offering_id
-    WHERE e2.student_id = s.student_id
-      AND co2.course_id = prereq.course_id
-      AND e2.grade IN ('A','B','C','D')   -- completed prerequisite
-      AND (co2.year < co.year OR (co2.year = co.year AND co2.semester < co.semester)) 
+WITH required_prerequisites AS (
+    SELECT
+        e.enrollment_id,
+        e.student_id,
+        child.course_code AS child_course,
+        p.prereq_course_id,
+        prereq.course_code AS prereq_course
+    FROM enrollments e
+    JOIN course_offerings co
+        ON e.offering_id = co.offering_id
+    JOIN courses child
+        ON co.course_id = child.course_id
+    JOIN prerequisites p
+        ON p.course_id = child.course_id
+    JOIN courses prereq
+        ON p.prereq_course_id = prereq.course_id
+),
+prerequisite_exceptions AS (
+    SELECT rp.*
+    FROM required_prerequisites rp
+    WHERE NOT EXISTS (
+        SELECT 1
+        FROM enrollments completed
+        JOIN course_offerings completed_offering
+            ON completed.offering_id = completed_offering.offering_id
+        WHERE completed.student_id = rp.student_id
+          AND completed_offering.course_id = rp.prereq_course_id
+          AND completed.grade IN ('A', 'B', 'C', 'D')
+    )
 )
-ORDER BY s.student_id, child.course_code;
+SELECT
+    COUNT(DISTINCT enrollment_id) AS exception_enrollments,
+    COUNT(DISTINCT student_id) AS affected_students
+FROM prerequisite_exceptions;
+
+-- Expected supplied-snapshot result: 203 exception enrollments / 183 students.
 
 -- 3. Grades & GPA
 
 -- Offering-level grade distribution and average GPA
 
-SELECT 
+SELECT
     c.course_code,
     co.semester,
     co.year,
-    COUNT(*) AS total_students,
+    COUNT(*) AS enrollment_records,
     AVG(e.gpa_points) AS avg_gpa,
     SUM(CASE WHEN e.grade = 'A' THEN 1 ELSE 0 END) AS A_count,
     SUM(CASE WHEN e.grade = 'B' THEN 1 ELSE 0 END) AS B_count,
@@ -88,17 +100,16 @@ JOIN courses c ON co.course_id = c.course_id
 GROUP BY co.offering_id, c.course_code, co.semester, co.year
 ORDER BY co.year DESC, co.semester, c.course_code;
 
--- Top 10 students by average GPA across their enrollments.
+-- Top 10 students by average GPA across all recorded enrollments.
 
 SELECT TOP 10
     s.student_id,
     m.name AS major,
     AVG(e.gpa_points) AS cumulative_gpa,
-    COUNT(e.enrollment_id) AS courses_completed
+    COUNT(e.enrollment_id) AS enrollment_records
 FROM students s
 JOIN majors m ON s.major_id = m.major_id
 JOIN enrollments e ON s.student_id = e.student_id
-WHERE e.grade IN ('A','B','C')
 GROUP BY s.student_id, m.name
 HAVING COUNT(e.enrollment_id) >= 4
 ORDER BY cumulative_gpa DESC;
@@ -107,15 +118,15 @@ ORDER BY cumulative_gpa DESC;
 
 -- Join evaluations with evaluation_summary; validate aggregation (resp_rate recompute).
 
-SELECT 
+SELECT
     es.offering_id,
     es.responses,
-    es.n_enrolled, 
+    es.n_enrolled,
     es.avg_overall,
     es.avg_clarity,
     es.avg_organization,
     es.avg_engagement,
-    es.avg_feedback, 
+    es.avg_feedback,
     es.avg_difficulty,
     COUNT(e.evaluation_id) as computed_responses,
     AVG(CAST(e.q_overall AS FLOAT)) as computed_avg_overall,
@@ -124,20 +135,23 @@ SELECT
     AVG(CAST(e.q_engagement AS FLOAT)) as computed_avg_engagement,
     AVG(CAST(e.q_feedback AS FLOAT)) as computed_avg_feedback,
     AVG(CAST(e.q_difficulty AS FLOAT)) as computed_avg_difficulty,
-    es.resp_rate * 100 AS provided_resp_rate,
-    ROUND(CAST(COUNT(e.evaluation_id) AS FLOAT) / NULLIF(es.n_enrolled, 0) * 100, 0) AS computed_resp_rate,
-    CASE 
-        WHEN es.resp_rate * 100 = ROUND(CAST(COUNT(e.evaluation_id) AS FLOAT) / NULLIF(es.n_enrolled, 0) * 100, 0)
+    ROUND(es.resp_rate * 100.0, 2) AS provided_resp_rate,
+    ROUND(CAST(COUNT(e.evaluation_id) AS FLOAT) / NULLIF(es.n_enrolled, 0) * 100.0, 2) AS computed_resp_rate,
+    CASE
+        WHEN ABS(
+            es.resp_rate
+            - CAST(COUNT(e.evaluation_id) AS FLOAT) / NULLIF(es.n_enrolled, 0)
+        ) <= 0.0005
             THEN 'Valid'
         ELSE 'Not Valid'
     END AS validation_status
 FROM evaluation_summary es
-JOIN evaluations e ON es.offering_id = e.offering_id
-GROUP BY 
+LEFT JOIN evaluations e ON es.offering_id = e.offering_id
+GROUP BY
     es.offering_id,
     es.responses,
     es.n_enrolled,
-    es.resp_rate, 
+    es.resp_rate,
     es.avg_overall,
     es.avg_clarity,
     es.avg_organization,
@@ -146,22 +160,34 @@ GROUP BY
     es.avg_difficulty
 ORDER BY es.offering_id;
 
+-- University-wide weighted response rate. This is the portfolio KPI and must
+-- not be replaced with the unweighted mean of offering-level response rates.
+
+SELECT
+    SUM(responses) AS total_responses,
+    SUM(n_enrolled) AS eligible_enrollments,
+    ROUND(
+        CAST(SUM(responses) AS FLOAT) / NULLIF(SUM(n_enrolled), 0) * 100.0,
+        2
+    ) AS weighted_response_rate
+FROM evaluation_summary;
+
 
 -- Correlate avg_overall with avg_final_score at the offering level (hint: join Enrollments aggregate).
 
-SELECT 
+SELECT
     es.offering_id,
     es.avg_overall,
     AVG(e.final_score) AS avg_final_score,
-    COUNT(e.final_score) AS n_students
+    COUNT(e.final_score) AS scored_enrollment_records
 FROM evaluation_summary es
 JOIN enrollments e ON es.offering_id = e.offering_id
 JOIN course_offerings co ON es.offering_id = co.offering_id
 JOIN courses c ON co.course_id = c.course_id
 JOIN departments d ON c.department_id = d.department_id
-GROUP BY 
-    es.offering_id, es.avg_overall, 
-    d.dept_code, c.course_code, 
+GROUP BY
+    es.offering_id, es.avg_overall,
+    d.dept_code, c.course_code,
     co.semester, co.year
 HAVING COUNT(e.final_score) >= 5
 ORDER BY es.offering_id;
@@ -170,7 +196,7 @@ ORDER BY es.offering_id;
 
 -- (a) double-booked classrooms (same timeslot)
 
-SELECT 
+SELECT
     ot1.classroom_id,
     cl.building,
     cl.room_number,
@@ -179,7 +205,7 @@ SELECT
     ts.end_time,
     COUNT(*) AS bookings
 FROM offering_timeslots ot1
-JOIN offering_timeslots ot2 
+JOIN offering_timeslots ot2
     ON ot1.classroom_id = ot2.classroom_id
     AND ot1.timeslot_id = ot2.timeslot_id
     AND ot1.offering_id != ot2.offering_id
@@ -190,14 +216,14 @@ HAVING COUNT(*) > 1;
 
 -- (b) professors teaching two offerings at the same timeslot
 
-SELECT 
+SELECT
     p.professor_id,
     p.first_name, p.last_name,
     ts.day_of_week, ts.start_time, ts.end_time,
     co1.offering_id AS course_1,
     co2.offering_id AS course_2
 FROM course_offerings co1
-JOIN course_offerings co2 
+JOIN course_offerings co2
     ON co1.professor_id = co2.professor_id
     AND co1.offering_id < co2.offering_id  -- avoid duplicates
 JOIN offering_timeslots ot1 ON co1.offering_id = ot1.offering_id
@@ -208,17 +234,16 @@ WHERE ot1.timeslot_id = ot2.timeslot_id;
 
 -- (c) students enrolled in two offerings that share a timeslot.
 
-SELECT 
+SELECT
     e1.student_id,
     ts.day_of_week, ts.start_time, ts.end_time,
     e1.offering_id AS course_1,
     e2.offering_id AS course_2
 FROM enrollments e1
-JOIN enrollments e2 
+JOIN enrollments e2
     ON e1.student_id = e2.student_id
     AND e1.offering_id < e2.offering_id
 JOIN offering_timeslots ot1 ON e1.offering_id = ot1.offering_id
 JOIN offering_timeslots ot2 ON e2.offering_id = ot2.offering_id
 JOIN timeslots ts ON ot1.timeslot_id = ts.timeslot_id
 WHERE ot1.timeslot_id = ot2.timeslot_id;
-

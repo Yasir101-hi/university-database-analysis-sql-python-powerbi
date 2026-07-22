@@ -67,8 +67,8 @@ Reports evaluation scores together with response counts and response rates. Inst
 - The student roster contains **600 students**; **591** have at least one enrollment.
 - The dataset contains **2,065 enrollment records**, with an average final score of **73.90**.
 - **87.36%** of enrollment outcomes are passing grades A-D.
-- **60.77%** of enrollment outcomes are grades A-C. This replaces the unsupported 68% figure in the earlier documentation.
-- The leading anonymized program, **Major 5-1**, recorded an average final score of **76.23** across **131 enrollment records**. The source does not expose a valid mapping from this label to “Computer Science,” so no named-major claim is made.
+- **60.77%** of enrollment outcomes are grades A-C.
+- The leading anonymized program, **Major 5-1**, recorded an average final score of **76.23** across **131 enrollment records**. The source does not provide a public mapping from anonymized labels to named programs.
 
 ### Prerequisite compliance
 
@@ -119,6 +119,11 @@ erDiagram
 - [SQL analysis queries](sql/university-analysis-queries.sql)
 - [Python analysis notebook](notebooks/university-analysis.ipynb)
 - [KPI definitions and validation rules](docs/kpi-reference.md)
+- [Power BI metric corrections](powerbi/README.md)
+
+Create a Python environment with `pip install -r requirements.txt`, then configure
+the SQL Server connection shown in the notebook. The public repository does not
+include the source CSV extracts or credentials; outputs are intentionally cleared.
 
 Notebook outputs remain cleared in the public repository to avoid publishing record-level academic data.
 
@@ -127,9 +132,12 @@ Notebook outputs remain cleared in the public repository to avoid publishing rec
 ```text
 university-database-analysis-sql-python-powerbi/
 ├── README.md
+├── requirements.txt
 ├── sql/university-analysis-queries.sql
 ├── notebooks/university-analysis.ipynb
-├── powerbi/university-analysis-dashboard.pbix
+├── powerbi/
+│   ├── university-analysis-dashboard.pbix
+│   └── README.md
 ├── docs/
 │   ├── university-database-analysis-report.pdf
 │   ├── university-database-analysis-presentation.pptx
