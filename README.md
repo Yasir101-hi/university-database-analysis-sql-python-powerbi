@@ -6,94 +6,101 @@ An end-to-end education analytics project that uses a normalized university data
 
 ## Executive Snapshot
 
-| Finding | Result |
+| KPI | Verified result |
 |---|---:|
-| Top-performing major | **Computer Science** |
-| Students receiving grades A–C | **≈68%** |
-| Prerequisite-compliance exceptions | **203 students** |
-| Dashboard pages | **3** |
-| Core analytical areas | **Student success, capacity, teaching quality** |
+| Student records | **600** |
+| Students with at least one enrollment | **591** |
+| Course-enrollment records | **2,065** |
+| Average final score | **73.90 / 100** |
+| Pass rate (A-D) | **87.36%** |
+| A-C outcome rate | **60.77% of enrollments** |
+| Prerequisite exceptions | **203 enrollments / 183 students** |
+| Section-seat utilization | **65.83%** |
+| Evaluation responses | **1,499** |
+| Weighted evaluation response rate | **72.59%** |
 
-> Figures above are based on the analysis outputs documented in this repository. The Power BI report and supporting report remain the authoritative project sources.
+> Student metrics use distinct `student_id`; grade outcomes use enrollment records. Keeping these grains separate prevents the denominator error found in the original dashboard labels.
 
 ## Academic and Operational Problem
 
-University data is distributed across students, departments, majors, courses, enrollments, assessments, classrooms, schedules, and evaluations. Without a unified reporting layer, management cannot easily answer:
+University data is distributed across students, departments, majors, courses, enrollments, assessments, classrooms, schedules, and evaluations. Without a unified reporting layer, management cannot reliably answer:
 
 - Which majors and cohorts perform best?
-- Where are students registering without completing prerequisites?
-- Which courses and classrooms are under- or over-utilized?
+- Where are students registering without evidence of completing prerequisites?
+- Which sections and faculties have unused capacity?
 - How reliable are teaching evaluations and their response rates?
-- Are academic metrics consistent across database, Python, and Power BI outputs?
-- Where should academic management intervene first?
+- Are academic metrics consistent across SQL, Python, and Power BI outputs?
 
 ## Solution
 
-I built an end-to-end analytical workflow combining:
+The project combines:
 
-1. **SQL Server** for relational querying and academic integrity checks.
+1. **SQL Server** for relational querying and academic-integrity checks.
 2. **Python and Pandas** for validation, metric reconciliation, and exploratory analysis.
-3. **Power BI and DAX** for interactive KPI monitoring and management reporting.
-4. **A normalized data model** connecting academic, operational, and evaluation entities.
+3. **Power BI and DAX** for interactive KPI monitoring.
+4. **A normalized data model** connecting academic, operational, assessment, and evaluation entities.
 
-## Reproducible Analysis
-
-- [SQL analysis queries](sql/university-analysis-queries.sql) cover enrollment snapshots, capacity utilization, prerequisite compliance, GPA and grade analysis, teaching-evaluation validation, and scheduling conflicts.
-- [Python analysis notebook](notebooks/university-analysis.ipynb) covers ingestion, type enforcement, data-quality tests, feature engineering, visualization, and reconciliation.
-- Notebook outputs are intentionally cleared in the public repository to prevent publication of record-level academic data. Configure `YOUR_SQL_SERVER` and run the notebook locally to reproduce the analysis.
-
-## Dashboard Pages
+## Corrected Dashboard Pages
 
 ### 1. Student Success
 
-Tracks GPA patterns, grade distribution, major and cohort performance, and student-level outcomes.
+Separates distinct students from course-enrollment outcomes and defines the grade denominator explicitly.
 
 ![Student Success Dashboard](images/student-success.png)
 
-### 2. Course and Capacity
+### 2. Course Capacity & Utilization
 
-Evaluates course demand, enrollment, classroom capacity, and utilization to support resource planning.
+Shows enrollment demand, section capacity, faculty utilization, and the highest-demand courses.
 
 ![Course Capacity Dashboard](images/course-capacity.png)
 
-### 3. Teaching Quality
+### 3. Teaching Quality & Participation
 
-Monitors evaluation scores, participation, professor-level patterns, and the relationship between evaluation results and student performance.
+Reports evaluation scores together with response counts and response rates. Instructor comparisons require at least 20 responses.
 
 ![Teaching Quality Dashboard](images/teaching-quality.png)
 
-## Key Findings
+## Verified Findings
 
-### Student performance
+### Student success
 
-- **Computer Science** recorded the highest average GPA among the analyzed majors.
-- Approximately **68% of students received grades between A and C**, indicating broadly positive performance while leaving a material group requiring academic support.
-- Student- and cohort-level analysis provides a basis for targeted advising rather than institution-wide interventions.
+- The student roster contains **600 students**; **591** have at least one enrollment.
+- The dataset contains **2,065 enrollment records**, with an average final score of **73.90**.
+- **87.36%** of enrollment outcomes are passing grades A-D.
+- **60.77%** of enrollment outcomes are grades A-C. This replaces the unsupported 68% figure in the earlier documentation.
+- The leading anonymized program, **Major 5-1**, recorded an average final score of **76.23** across **131 enrollment records**. The source does not expose a valid mapping from this label to “Computer Science,” so no named-major claim is made.
 
-### Academic compliance and data quality
+### Prerequisite compliance
 
-- **203 students** were identified as enrolled in courses without completing the required prerequisites.
-- Validation checks found missing or inconsistent values in portions of the enrollment and assessment data.
-- Recomputing scores in Python helped verify that reported academic metrics were consistent with the underlying records.
+- The prerequisite screen produced **203 enrollment-level exceptions**, affecting **183 distinct students**.
+- An exception means the data contains no passing A-D enrollment for at least one required prerequisite course.
+- This is a screening result: term sequence, transferred credit, waivers, and equivalency records are not available and require registrar validation.
 
-### Capacity and teaching quality
+### Capacity
 
-- Course and classroom utilization showed opportunities to rebalance resources between under-used and highly demanded offerings.
-- Teaching evaluations showed a **moderate positive relationship** with final student scores.
-- Evaluation response rates should be considered when interpreting professor-level teaching indicators.
+- The model contains **108 courses**, **61 delivered sections**, and **28 classrooms**.
+- The 61 sections provide **3,137 seats** for **2,065 enrollment records**, producing **65.83% weighted section-seat utilization**.
+- Utilization varies materially across faculties, supporting targeted section consolidation or expansion rather than a university-wide action.
+
+### Teaching quality
+
+- Students submitted **1,499 evaluations** with an average overall score of **3.98 / 5**.
+- The weighted evaluation response rate is **72.59%**.
+- The professor roster contains **41 records**, while **29 instructors** are assigned to the analyzed sections.
+- Instructor results are displayed with response volume and a minimum sample of 20 responses.
 
 ## Management Recommendations
 
-1. Add an automated prerequisite validation step to the registration workflow and review the 203 exceptions.
-2. Use utilization thresholds to flag course sections that should be consolidated, expanded, or moved.
-3. Introduce scheduled data-quality checks for enrollments, assessment components, and evaluation records.
-4. Track evaluation response rate alongside teaching score to avoid drawing conclusions from weak participation.
-5. Monitor GPA and grade distribution by major and cohort to identify targeted academic-support needs.
-6. Reconcile SQL, Python, and Power BI outputs before each reporting cycle.
+1. Review the 203 prerequisite exceptions with the registrar before taking action, focusing first on the 183 affected students.
+2. Use section-level utilization thresholds to consolidate low-demand sections and protect capacity in high-demand courses.
+3. Track student counts and enrollment outcomes as separate measures in Power BI.
+4. Display evaluation score and response rate together; suppress or flag instructor rankings with weak response volume.
+5. Maintain an approved mapping table if anonymized major labels must be translated into public program names.
+6. Reconcile SQL, Python, and Power BI outputs before every reporting release.
 
 ## Data Model
 
-The project uses a normalized relational structure covering academic organization, people, courses, delivery, assessment, enrollment, and evaluation. See the [data model documentation](docs/data-model.md).
+See the documented [data model and analytical grains](docs/data-model.md).
 
 ```mermaid
 erDiagram
@@ -107,40 +114,22 @@ erDiagram
     COURSE_OFFERINGS ||--o{ EVALUATIONS : receives
 ```
 
-## KPI Reference
+## Reproducible Analysis
 
-The [KPI reference](docs/kpi-reference.md) documents the business meaning and validation status of the core indicators used in the analysis.
+- [SQL analysis queries](sql/university-analysis-queries.sql)
+- [Python analysis notebook](notebooks/university-analysis.ipynb)
+- [KPI definitions and validation rules](docs/kpi-reference.md)
 
-## Analytical Workflow
-
-1. Review database entities, keys, and relationships.
-2. Query enrollment, performance, capacity, prerequisite, schedule, and evaluation data in SQL Server.
-3. Validate data types, missing values, and foreign-key consistency in Python.
-4. Recompute academic metrics and reconcile outputs.
-5. Model the reporting layer in Power BI.
-6. Build management-facing dashboards and recommendations.
-
-## Tools and Skills Demonstrated
-
-- SQL Server and relational querying
-- Python, Pandas, and exploratory analysis
-- Power BI, DAX, and data modeling
-- Data validation and reconciliation
-- Education and academic-performance analytics
-- Capacity and utilization analysis
-- KPI design and data storytelling
+Notebook outputs remain cleared in the public repository to avoid publishing record-level academic data.
 
 ## Repository Structure
 
 ```text
 university-database-analysis-sql-python-powerbi/
 ├── README.md
-├── sql/
-│   └── university-analysis-queries.sql
-├── notebooks/
-│   └── university-analysis.ipynb
-├── powerbi/
-│   └── university-analysis-dashboard.pbix
+├── sql/university-analysis-queries.sql
+├── notebooks/university-analysis.ipynb
+├── powerbi/university-analysis-dashboard.pbix
 ├── docs/
 │   ├── university-database-analysis-report.pdf
 │   ├── university-database-analysis-presentation.pptx
@@ -152,18 +141,9 @@ university-database-analysis-sql-python-powerbi/
     └── teaching-quality.png
 ```
 
-## How to Review the Project
-
-1. Read the executive snapshot and key findings.
-2. Review the three dashboard screenshots.
-3. Review the SQL queries and reproducible Python notebook.
-4. Open the PDF report for the complete management-facing analysis.
-5. Open the PBIX file in Power BI Desktop for interactive filtering and model inspection.
-6. Review the presentation for a concise stakeholder summary.
-
 ## Validation Note
 
-Only values already supported by the project analysis are presented as exact findings. Capacity, evaluation, and correlation results are described qualitatively where the repository does not expose a verified numeric value.
+All figures above were recomputed from the supplied CSV tables. Missing `final_score` values are excluded from the average. Prerequisite findings remain screening-level until academic sequence, waivers, transferred credit, and equivalencies are available.
 
 ## Author
 
@@ -176,4 +156,4 @@ Data Analyst | Business Intelligence | Energy & Operations Analytics
 
 ## Project Status
 
-Completed. The repository includes cleaned SQL queries, a reproducible Python notebook, Power BI report, management report, presentation, data-model documentation, and KPI reference.
+Completed and reconciled. Dashboard images and documentation use verified denominators and clearly separate student, enrollment, section, and evaluation grains.

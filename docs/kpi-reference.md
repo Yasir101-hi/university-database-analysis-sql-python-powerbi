@@ -1,63 +1,65 @@
-# KPI and Analysis Reference
+# KPI and Validation Reference
 
-This reference distinguishes verified project findings from analytical indicators that require the PBIX or underlying data for an exact value.
+This reference documents the verified definitions used in the corrected university dashboards.
 
-## Verified Findings
+## Verified KPIs
 
-| Indicator | Business meaning | Documented result |
+| Indicator | Grain and calculation | Verified result |
 |---|---|---:|
-| Top-performing major | Major with the highest average GPA | **Computer Science** |
-| A–C grade share | Students receiving grades from A through C | **≈68%** |
-| Prerequisite exceptions | Students enrolled without completing required prerequisites | **203** |
-| Dashboard pages | Management reporting views | **3** |
+| Student roster | Distinct `student_id` in `students` | **600** |
+| Enrolled students | Distinct `student_id` in `enrollments` | **591** |
+| Enrollments | Count of `enrollment_id` | **2,065** |
+| Average final score | Mean valid `final_score` | **73.90** |
+| Average GPA points | Mean `gpa_points` by enrollment | **1.90** |
+| Pass rate | Enrollment grades A-D / all enrollment records | **87.36%** |
+| A-C outcome rate | Enrollment grades A-C / all enrollment records | **60.77%** |
+| Prerequisite exceptions | Enrollments missing evidence of a passing prerequisite | **203** |
+| Students affected by prerequisite exceptions | Distinct students among exception enrollments | **183** |
+| Courses | Distinct `course_id` | **108** |
+| Delivered sections | Distinct `offering_id` | **61** |
+| Section capacity | Sum of section `capacity` | **3,137** |
+| Weighted section-seat utilization | Enrollments / summed section capacity | **65.83%** |
+| Classrooms | Distinct `classroom_id` | **28** |
+| Evaluation responses | Count of `evaluation_id` | **1,499** |
+| Weighted evaluation response rate | Total responses / total enrolled from evaluation summary | **72.59%** |
+| Average overall evaluation | Mean `q_overall` | **3.98 / 5** |
+| Active instructors | Distinct professors assigned to analyzed sections | **29** |
+| Professor roster | Distinct `professor_id` in professor table | **41** |
 
-## Student Success Indicators
+## Grade Distribution
 
-| Indicator | Definition | Management use |
-|---|---|---|
-| Average GPA | Mean GPA in the selected major, cohort, or period | Compare academic performance |
-| Grade distribution | Share or count of students by grade band | Identify achievement and support needs |
-| Student count | Distinct students in the selected context | Establish reporting denominator |
-| Course completion rate | Completed enrollments divided by eligible enrollments | Monitor academic progression |
-| At-risk student count | Students below an agreed GPA or grade threshold | Target advising and intervention |
+| Grade | Enrollment records | Share |
+|---|---:|---:|
+| A | **209** | **10.12%** |
+| B | **447** | **21.65%** |
+| C | **599** | **29.01%** |
+| D | **549** | **26.59%** |
+| F | **261** | **12.64%** |
 
-## Course and Capacity Indicators
+## Dashboard Rules
 
-| Indicator | Definition | Management use |
-|---|---|---|
-| Enrollment count | Students registered in a course offering | Measure demand |
-| Capacity utilization | Enrollment divided by available course or classroom capacity | Rebalance resources |
-| Available seats | Capacity minus enrollment | Support registration planning |
-| Over-capacity offerings | Offerings where enrollment exceeds capacity | Flag operational risk |
-| Under-utilized offerings | Offerings below an agreed utilization threshold | Identify consolidation opportunities |
+- Never label enrollment-record counts as student counts.
+- State whether pass means A-C or A-D; the corrected dashboard uses A-D.
+- Calculate weighted utilization from total enrollments divided by total section capacity.
+- Report section capacity and classroom capacity separately.
+- Show evaluation scores together with response counts or response rate.
+- Apply a minimum of 20 responses to public instructor rankings.
+- Preserve anonymized major labels unless an approved mapping table exists.
 
-## Teaching Quality Indicators
+## Prerequisite Screening Boundary
 
-| Indicator | Definition | Management use |
-|---|---|---|
-| Average evaluation score | Mean valid teaching-evaluation score | Monitor student feedback |
-| Evaluation response rate | Submitted evaluations divided by eligible enrollments | Assess reliability |
-| Professor-level score | Evaluation score grouped by professor | Support development conversations |
-| Score-performance relationship | Association between teaching score and student final score | Explore instructional patterns |
+The screen joins enrollment courses to their prerequisite requirements and looks for a passing A-D enrollment for the same student and prerequisite course. It identifies **203 enrollment exceptions affecting 183 students**.
 
-## Compliance and Data Quality Indicators
+The result is not a final academic-compliance judgment because the supplied data does not include:
 
-| Indicator | Definition | Management use |
-|---|---|---|
-| Prerequisite exception count | Enrollments missing required prerequisite completion | Registration control |
-| Missing assessment count | Expected assessment records without a valid score | Data completeness |
-| Foreign-key exception count | Child records without a matching parent key | Database integrity |
-| Schedule conflict count | Overlapping assignments for a student, professor, or classroom | Timetable quality |
+- transferred credit;
+- prerequisite waivers;
+- course equivalencies;
+- authoritative term-sequence history.
 
-## Validation Rules
+## Data Quality Checks
 
-- Use consistent student and enrollment denominators across SQL, Python, and Power BI.
-- Recompute final scores from component weights before comparing them with stored results.
-- Count prerequisite exceptions at the student-enrollment level before presenting a distinct-student total.
-- Interpret evaluation scores together with response rate.
-- Define utilization thresholds explicitly before labeling an offering under- or over-utilized.
-- Keep qualitative descriptions when an exact numeric result has not been independently verified.
-
-## Current Documentation Boundary
-
-The repository supports exact reporting for the top-performing major, the approximate A–C grade share, and 203 prerequisite exceptions. Other indicators are included as analytical definitions; consult the PBIX, PDF report, and source data before publishing exact values.
+- Enrollment IDs are unique.
+- No orphan student or offering keys were found in enrollments.
+- Two enrollment records have missing `final_score`; they are excluded from the average score.
+- Grade values are complete across all 2,065 enrollment records.
